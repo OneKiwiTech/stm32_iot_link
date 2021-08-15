@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"elclientresponse.h": "c",
+			"elclienttransport.h": "c"
+		}
+	}
+}
