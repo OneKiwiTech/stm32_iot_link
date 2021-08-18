@@ -68,7 +68,14 @@ BOOL ELClient_Sync(void)
 
   if ( ELClient_WaitReturn() )
   {
-	  if (compltPacketPtr->value == (uint32_t)&wifiCb) {
+    /*
+     for (i=0;i<4;i++)
+     {
+       if (*src++ != *dst++) { return false; };
+     }
+    */
+	  if (compltPacketPtr->value == (uint32_t)&wifiCb) 
+    {
 		  return TRUE;
 	  }
   }
@@ -85,11 +92,10 @@ void ELClient_GetWifiStatus(void)
 
 
 
-/*Porting status: NOT YET */
+/*Porting status:DONE  */
 void ELClient_Process(void* arg)
 {
   uint8_t value = 0;
-
 
   for(;;)
   {
@@ -128,6 +134,9 @@ void ELClient_RequestArgc(uint16_t cmd, uint32_t value, uint16_t argc)
 {
   crc = 0;
 
+  /* send an initial END character to flush out any data that may
+  * have accumulated in the receiver due to line noise
+  */
   xPortSerialPutByte(SLIP_END);
   ELClient_WriteBuffer(&cmd, 2);
   crc = _crc16Data((unsigned const char*)&cmd, 2, crc);
@@ -170,6 +179,9 @@ void ELClient_RequestBuffer(const void* data, uint16_t len)
 void ELClient_Request(void) 
 {
   ELClient_WriteBuffer((uint8_t*)&crc, 2);
+
+  /* tell the receiver that we’re done sending the packet
+  */
   xPortSerialPutByte(SLIP_END);
 }
 

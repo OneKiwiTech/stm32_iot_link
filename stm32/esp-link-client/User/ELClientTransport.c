@@ -33,16 +33,26 @@ uint8_t ELClient_Read()
 
     return data;
 }
-
+/* for each byte in the packet, send the appropriate character
+* sequence
+*/
 void ELClient_Write(uint8_t data)
 {
   
   switch (data)
   {
+  /* if it’s the same code as an END character, we send a
+  * special two character code so as not to make the
+  * receiver think we sent an END
+  */    
 	  case SLIP_END:
 		  xPortSerialPutByte(SLIP_ESC);
 		  xPortSerialPutByte(SLIP_ESC_END);
 		break;
+    /* if it’s the same code as an ESC character,
+    * we send a special two character code so as not
+    * to make the receiver think we sent an ESC
+    */    
 	  case SLIP_ESC:
 		  xPortSerialPutByte(SLIP_ESC);
 		  xPortSerialPutByte(SLIP_ESC_ESC);

@@ -62,11 +62,16 @@ void ELClientMqtt_subscribe(const char* topic, uint8_t qos)
 void ELClientMqtt_publish(const uint8_t* topic, const char* data,
     const uint16_t len, uint8_t qos, uint8_t retain)
 {
+  // Header 
   ELClient_RequestArgc(CMD_MQTT_PUBLISH, 0, 5);
-  ELClient_RequestBuffer(topic, strlen(topic));
-  ELClient_RequestBuffer(data, len);
-  ELClient_RequestBuffer(&len, 2);
-  ELClient_RequestBuffer(&qos, 1);
-  ELClient_RequestBuffer(&retain, 1);
+
+  // Data section
+  ELClient_RequestBuffer(topic, strlen(topic)); /*Arg 1*/
+  ELClient_RequestBuffer(data, len); /*Arg 2*/
+  ELClient_RequestBuffer(&len, 2); /*Arg 3*/
+  ELClient_RequestBuffer(&qos, 1); /*Arg 4*/
+  ELClient_RequestBuffer(&retain, 1); /*Arg 5*/
+
+  // Footer
   ELClient_Request();
 }
