@@ -1,10 +1,11 @@
 #include "ELClientTransport.h"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "platform.h"
 
 /* The queue is to be created to hold a maximum of 10 uint64_t
 variables. */
-#define SERIAL_QUEUE_LENGTH    256
+#define SERIAL_QUEUE_LENGTH    1024
 #define SERIAL_ITEM_SIZE       sizeof( uint8_t )
 
 /* The variable used to hold the queue's data structure. */
@@ -25,21 +26,17 @@ void ELCLient_Transport_Init( void *pvParameters )
 
  }
 
-BOOL ELClient_Read(uint8_t* data)
+uint8_t ELClient_Read()
 {
-      if( xQueueReceive( xSerialQueueHandle,
-                         data,
-                         ( TickType_t ) 0xFFFFFFFF ) == pdPASS )
-      {
-         /* xRxedStructure now contains a copy of xMessage. */
-         return TRUE;
-      }
+	uint8_t data = 0;
+    xQueueReceive( xSerialQueueHandle, &data, ( TickType_t ) 0xFFFFFFFF );
 
-    return FALSE;
+    return data;
 }
 
 void ELClient_Write(uint8_t data)
 {
+  
   switch (data)
   {
 	  case SLIP_END:
@@ -53,6 +50,7 @@ void ELClient_Write(uint8_t data)
 	  default:
 		xPortSerialPutByte(data);
   }
+  
 }
 
 void ELClient_WriteBuffer(void* data, uint16_t len)
@@ -61,12 +59,7 @@ void ELClient_WriteBuffer(void* data, uint16_t len)
 
   while (len--)
   {
-    ELClient_Write(*d++);
+	  ELClient_Write(*d++);
   }
-}
-
-void pxFrameCBByteReceived(uint8_t in_byte)
-{
-
 }
 

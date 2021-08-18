@@ -36,24 +36,24 @@ void ELClientMqtt_DataCbRegister(void* fn)
 
 void ELClientMqtt_setup() 
 {
-  ELClient_Request(CMD_MQTT_SETUP, 0, 4);
-  uint32_t cb = (uint32_t)&(EL_Mqtt_Struct.connectedCb);
-  ELClient_Request(&cb, 4);
-  cb = (uint32_t)&(EL_Mqtt_Struct.disconnectedCb);
-  ELClient_Request(&cb, 4);
-  cb = (uint32_t)&(EL_Mqtt_Struct.publishedCb);
-  ELClient_Request(&cb, 4);
-  cb = (uint32_t)&(EL_Mqtt_Struct.dataCb);
-  ELClient_Request(&cb, 4);
+  ELClient_RequestArgc(CMD_MQTT_SETUP, 0, 4);
+  uint32_t cb = (uint32_t)(EL_Mqtt_Struct.connectedCb);
+  ELClient_RequestBuffer(&cb, 4);
+  cb = (uint32_t)(EL_Mqtt_Struct.disconnectedCb);
+  ELClient_RequestBuffer(&cb, 4);
+  cb = (uint32_t)(EL_Mqtt_Struct.publishedCb);
+  ELClient_RequestBuffer(&cb, 4);
+  cb = (uint32_t)(EL_Mqtt_Struct.dataCb);
+  ELClient_RequestBuffer(&cb, 4);
   ELClient_Request();
 }
 
 // SUBSCRIBE
 void ELClientMqtt_subscribe(const char* topic, uint8_t qos) 
 {
-  ELClient_Request(CMD_MQTT_SUBSCRIBE, 0, 2);
+  ELClient_RequestArgc(CMD_MQTT_SUBSCRIBE, 0, 2);
   ELClient_RequestBuffer(topic, strlen(topic));
-  ELClient_Request(&qos, 1);
+  ELClient_RequestBuffer(&qos, 1);
   ELClient_Request();
 }
 
@@ -62,11 +62,11 @@ void ELClientMqtt_subscribe(const char* topic, uint8_t qos)
 void ELClientMqtt_publish(const uint8_t* topic, const char* data,
     const uint16_t len, uint8_t qos, uint8_t retain)
 {
-  ELClient_Request(CMD_MQTT_PUBLISH, 0, 5);
+  ELClient_RequestArgc(CMD_MQTT_PUBLISH, 0, 5);
   ELClient_RequestBuffer(topic, strlen(topic));
-  ELClient_Request(data, len);
-  ELClient_Request(&len, 2);
-  ELClient_Request(&qos, 1);
-  ELClient_Request(&retain, 1);
+  ELClient_RequestBuffer(data, len);
+  ELClient_RequestBuffer(&len, 2);
+  ELClient_RequestBuffer(&qos, 1);
+  ELClient_RequestBuffer(&retain, 1);
   ELClient_Request();
 }

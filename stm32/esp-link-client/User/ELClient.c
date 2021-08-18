@@ -7,10 +7,19 @@
 #include "platform.h"
 #include "debug_log.h"
 
+#include "FreeRTOS.h"
+#include "semphr.h"
+
+//static uint32_t testPtr = 0;
+
+SemaphoreHandle_t xCompltSemp;
+StaticSemaphore_t xCompltSempBuffer;
+
+static ELClientPacket* compltPacketPtr = 0;
 static uint16_t crc; /**< CRC checksum */
-static uint8_t _protoBuf[256]; /**< Protocol buffer */
+static uint8_t _protoBuf[128]; /**< Protocol buffer */
 static ELClientProtocol _proto; /**< Protocol structure */
-elclient_callback_fn	wifiCb;
+static elclient_callback_fn	wifiCb;
 
 static uint16_t _crc16Add(unsigned char b, uint16_t acc);
 static uint16_t _crc16Data(const unsigned char *data, uint16_t len, uint16_t acc);
@@ -18,7 +27,7 @@ static uint16_t _crc16Data(const unsigned char *data, uint16_t len, uint16_t acc
 void ELClient_RequestBuffer(const void* data, uint16_t len);
 void ELClient_RequestArgc(uint16_t cmd, uint32_t value, uint16_t argc);
 
-static ELClientPacket* protoCompletedCb(void);
+static void protoCompletedCb(void);
 
 //===== Initialization
 /* Porting status: DONE  */
@@ -28,6 +37,9 @@ void ELClient_Init()
   _proto.bufSize = sizeof(_protoBuf);
   _proto.dataLen = 0;
   _proto.isEsc = 0;
+
+  xCompltSemp = xSemaphoreCreateBinaryStatic( &xCompltSempBuffer );
+
   vMBPortSerialEnable(1, 0);
   ELCLient_Transport_Init(0);
 }
@@ -35,18 +47,33 @@ void ELClient_Init()
 /* Porting status: DONE  */
 void ELClientMqtt_WifiCbRegister(void* fn)
 {
-  wifiCb = fn;
+  wifiCb = (elclient_callback_fn)fn;
+}
+
+BaseType_t ELClient_WaitReturn(void)
+{
+	return (xSemaphoreTake( xCompltSemp, ( TickType_t ) 3000 ) == pdTRUE);
 }
 
 /* Porting status: DONE */
-void ELClient_Sync(void)
+BOOL ELClient_Sync(void)
 {
   // send a SLIP END char to make sure we get a clean start
-  ELClient_Write(SLIP_END);
+  xPortSerialPutByte(SLIP_END);
   
   // send sync request
+//  testPtr = (uint32_t)&wifiCb;
   ELClient_RequestArgc(CMD_SYNC, (uint32_t)&wifiCb, 0);
   ELClient_Request();
+
+  if ( ELClient_WaitReturn() )
+  {
+	  if (compltPacketPtr->value == (uint32_t)&wifiCb) {
+		  return TRUE;
+	  }
+  }
+
+  return FALSE;
 }
 
 /*Porting status: OK */
@@ -56,39 +83,43 @@ void ELClient_GetWifiStatus(void)
   ELClient_Request();
 }
 
+
+
 /*Porting status: NOT YET */
 void ELClient_Process(void* arg)
 {
-  uint8_t value;
-  ELClientPacket* packet;
+  uint8_t value = 0;
+
 
   for(;;)
   {
-	  if (ELClient_Read(&value))
+	  value = ELClient_Read();
+	  if (value == SLIP_ESC)
 	  {
-      if (value == SLIP_ESC) 
-      {
-        _proto.isEsc = 1;
-      } else if (value == SLIP_END) 
-      {
-          if ( _proto.dataLen >= 8 ) {
-            protoCompletedCb();
-          } 
-          _proto.dataLen = 0;
-          _proto.isEsc = 0;
-      } else 
-      {
-        if (_proto.isEsc)
-        {
-          if (value == SLIP_ESC_END) { value = SLIP_END; }
-          if (value == SLIP_ESC_ESC) { value = SLIP_ESC; }
-          _proto.isEsc = 0;
-        }
-        if (_proto.dataLen < _proto.bufSize) {
-          _proto.buf[_proto.dataLen++] = value;
-        }
-      }
-    }
+		_proto.isEsc = 1;
+	  } else if (value == SLIP_END)
+	  {
+		  if ( _proto.dataLen >= 8 ) {
+			protoCompletedCb();
+			xSemaphoreGive( xCompltSemp );
+		  }
+		  _proto.dataLen = 0;
+		  _proto.isEsc = 0;
+	  } else
+	  {
+		if (_proto.isEsc)
+		{
+		  if (value == SLIP_ESC_END) { value = SLIP_END; }
+		  if (value == SLIP_ESC_ESC) { value = SLIP_ESC; }
+		  _proto.isEsc = 0;
+		}
+		if (_proto.dataLen < _proto.bufSize) {
+		  _proto.buf[_proto.dataLen++] = value;
+		}else
+		{
+			_proto.dataLen = 0;
+		}
+	  }
   }
 }
 
@@ -97,7 +128,7 @@ void ELClient_RequestArgc(uint16_t cmd, uint32_t value, uint16_t argc)
 {
   crc = 0;
 
-  ELClient_Write(SLIP_END);
+  xPortSerialPutByte(SLIP_END);
   ELClient_WriteBuffer(&cmd, 2);
   crc = _crc16Data((unsigned const char*)&cmd, 2, crc);
 
@@ -112,17 +143,17 @@ void ELClient_RequestBuffer(const void* data, uint16_t len)
 {
   uint16_t l = 0;
   uint8_t *d = (uint8_t*)data;
+  uint16_t data_len = len;
 
   // ELClient_write the length
-  ELClient_WriteBuffer(&len, 2);
-  crc = _crc16Data((unsigned const char*)&len, 2, crc);
+  ELClient_WriteBuffer(&data_len, 2);
+  crc = _crc16Data((unsigned const char*)&data_len, 2, crc);
 
   // output the data
   for (l=len; l>0; l--) 
   {
     ELClient_Write(*d);
-    crc = _crc16Add(*d, crc);
-    d++;
+    crc = _crc16Add(*d++, crc);
   }
 
   // output padding
@@ -139,52 +170,53 @@ void ELClient_RequestBuffer(const void* data, uint16_t len)
 void ELClient_Request(void) 
 {
   ELClient_WriteBuffer((uint8_t*)&crc, 2);
-  ELClient_Write(SLIP_END);
+  xPortSerialPutByte(SLIP_END);
 }
 
 //================ CALLBACK HANDLER ==================
-static ELClientPacket* protoCompletedCb(void)
+static void protoCompletedCb(void)
 {
-	ELClientPacket* packet = (ELClientPacket*)_proto.buf;
+  compltPacketPtr = (ELClientPacket*)_proto.buf;
 
-	elclient_callback_fn  fp;
+  elclient_callback_fn  fp;
 
   // verify CRC
   uint16_t crc = _crc16Data(_proto.buf, _proto.dataLen-2, 0);
   uint16_t resp_crc = *(uint16_t*)(_proto.buf+_proto.dataLen-2);
   if (crc != resp_crc) {
     DBG_PRINTF("ELC: Invalid CRC");
-    return NULL;
+    return ;
   }
 
 	// dispatch based on command
-	switch (packet->cmd) 
+	switch (compltPacketPtr->cmd)
   {
 	  case CMD_RESP_V: // response with a value: return the packet
-      // value response
-      DBG_PRINTF("RESP_V: ");
-      DBG_PRINTF(packet->value);
-		  return packet;
+		  // value response
+		  DBG_PRINTF("RESP_V: ");
+		  DBG_PRINTF(packet->value);
+		 break;
 
 	  case CMD_RESP_CB: // response callback: perform the callback!
-      // callback reponse
-      DBG_PRINTF("RESP_CB: ");
-      DBG_PRINTF(packet->value);
-      DBG_PRINTF(" ");
-      DBG_PRINTF(packet->argc);
-      fp = (elclient_callback_fn)packet->value;
-      if (fp != NULL)
-      {
-        (*fp)(packet);
-      }
-      return NULL;
+		  // callback reponse
+		  DBG_PRINTF("RESP_CB: ");
+		  DBG_PRINTF(packet->value);
+		  DBG_PRINTF(" ");
+		  DBG_PRINTF(packet->argc);
+		  fp = *((elclient_callback_fn*)(compltPacketPtr->value));
+		  if (fp != NULL)
+		  {
+//			(fp)(compltPacketPtr);
+		  }
+		 break;
 
 	  case CMD_SYNC: // esp-link is not in sync, it may have reset, signal up the stack
-      DBG_PRINTF("NEED_SYNC!");
-      return NULL;
+		  DBG_PRINTF("NEED_SYNC!");
+		  break;
+
 	  default:
-      DBG_PRINTF("CMD??");
-      return NULL;
+		  DBG_PRINTF("CMD??");
+		  break;
 	 }
 }
 

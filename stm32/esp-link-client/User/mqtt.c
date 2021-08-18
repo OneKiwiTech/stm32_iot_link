@@ -40,17 +40,15 @@ void Mqtt_Publish(const char* topic, const uint8_t* data, const uint16_t len)
   ELClientMqtt_publish(topic, data, len, 0, 0);
 }
 
-void Mqtt_Loop()
+void Mqtt_Sync()
 {
   BOOL ok = FALSE;
-
-  do {
-	 ELClient_Sync();      // sync up with esp-link, blocks for up to 2 seconds
-	 osDelay(500);
+  do{
+	 ok = ELClient_Sync();      // sync up with esp-link, blocks for up to 2 seconds
+	 osDelay(1000);
   } while(!ok);
-
-  ELClient_Process(0);
 }
+
 
 //============================ LOCAL FUNCTIONS ===============================
 // Callback made from esp-link to notify of wifi status changes
@@ -70,7 +68,7 @@ void wifiStatusCb(void* arg)
 void mqttConnected(void* response)
 {
   DBG_PRINTF("MQTT connected!");
-  ELClientMqtt_subscribe("/esp-link/1", 0);
+
   connected = TRUE;
 }
 

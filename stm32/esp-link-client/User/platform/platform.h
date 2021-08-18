@@ -82,9 +82,9 @@ void            xMBPortSerialClose( void );
 
 void            vMBPortSerialEnable( BOOL xRxEnable, BOOL xTxEnable );
 
-BOOL     xMBPortSerialGetByte( CHAR * pucByte );
+BOOL     xPortSerialGetByte( CHAR * pucByte );
 
-BOOL     xMBPortSerialPutByte( CHAR ucByte );
+BOOL     xPortSerialPutByte( CHAR ucByte );
 
 BOOL            xMBPortSerialSendBuffer( CHAR* ucBytePtr, ULONG ulBufferLen );
 

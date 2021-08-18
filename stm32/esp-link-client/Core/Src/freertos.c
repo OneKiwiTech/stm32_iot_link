@@ -26,7 +26,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "mqtt.h"
+#include "ELClient.h"
+#include "ELClientMqtt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,13 +48,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+osThreadId ELClientRxTaskHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+void StartELClientRxTask(void const * argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -98,7 +100,7 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  Mqtt_Init();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -124,6 +126,9 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  osThreadDef(ELClientRxTask, StartELClientRxTask, osPriorityNormal, 0, 512);
+  ELClientRxTaskHandle = osThreadCreate(osThread(ELClientRxTask), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -138,18 +143,32 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
-  Mqtt_Init();
+ 
+  Mqtt_Sync();
+  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+  ELClientMqtt_setup();
+  ELClientMqtt_subscribe("/esp-link/2", 1);
+  osDelay(100);
+  ELClientMqtt_subscribe("/esp-link/2", 1);
   /* Infinite loop */
   for(;;)
   {
-	  Mqtt_Loop();
+	  Mqtt_Publish("/esp-link/1", "hello", strlen("hello"));
+	  osDelay(3000);
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+void StartELClientRxTask(void const * argument)
+{
+	osDelay(500);
+	for (;;)
+	{
+		 ELClient_Process(0);
+	}
+}
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

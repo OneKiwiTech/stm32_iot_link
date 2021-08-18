@@ -20,13 +20,14 @@
  */
 
 #include "port.h"
+#include "stm32f4xx_ll_usart.h"
 
 /* ----------------------- static functions ---------------------------------*/
 //static void prvvUARTTxReadyISR( void );
 //static void prvvUARTRxISR( void );
  
 /* -----------------------    variables     ---------------------------------*/
-extern UART_HandleTypeDef huart2;
+//extern UART_HandleTypeDef huart2;
  
 /* ----------------------- Start implementation -----------------------------*/
 void
@@ -37,15 +38,15 @@ vMBPortSerialEnable( BOOL xRxEnable, BOOL xTxEnable )
   */
   
   if (xRxEnable) {        
-    __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
-  } else {    
-    __HAL_UART_DISABLE_IT(&huart2, UART_IT_RXNE);
+	  LL_USART_EnableIT_RXNE(USART2);
+  } else {
+	  LL_USART_DisableIT_TXE(USART2);
   }
   
   if (xTxEnable) {    
-    __HAL_UART_ENABLE_IT(&huart2, UART_IT_TXE);
+	  LL_USART_EnableIT_TXE(USART2);
   } else {
-    __HAL_UART_DISABLE_IT(&huart2, UART_IT_TXE);
+	  LL_USART_DisableIT_TXE(USART2);
   }  
 }
  
@@ -65,7 +66,9 @@ xPortSerialPutByte( CHAR ucByte )
   /* Put a byte in the UARTs transmit buffer. This function is called
   * by the protocol stack if pxMBFrameCBTransmitterEmpty( ) has been
   * called. */
-  return (HAL_OK == HAL_UART_Transmit(&huart2, (uint8_t*)&ucByte, 1, 1000));
+  LL_USART_TransmitData8(USART2, ucByte);
+  while(!LL_USART_IsActiveFlag_TC(USART2)) { };
+  return TRUE;
 }
  
 BOOL
@@ -74,7 +77,14 @@ xMBPortSerialSendBuffer( CHAR* ucBytePtr, ULONG ulBufferLen )
   /* Put a byte in the UARTs transmit buffer. This function is called
   * by the protocol stack if pxMBFrameCBTransmitterEmpty( ) has been
   * called. */
-  return (HAL_OK == HAL_UART_Transmit_DMA(&huart2, (uint8_t*)ucBytePtr, ulBufferLen));
+	ULONG i = ulBufferLen;
+	while(i--)
+	{
+		 LL_USART_TransmitData8(USART2,  *ucBytePtr++);
+		 while(!LL_USART_IsActiveFlag_TC(USART2)) { };
+	}
+
+   return TRUE;
 }
 //
 //BOOL
