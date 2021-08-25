@@ -1,5 +1,13 @@
 #include "ELClientResponse.h"
 
+/* https://stackoverflow.com/questions/20844983/what-is-the-best-way-to-calculate-number-of-padding-bytes 
+  As long as the optimizing compiler uses bitmasking for the % 4 instead of division,
+  I think your code is probably pretty good. 
+  This might be a slight improvement:
+  // only the last 2 bits (hence & 3) matter
+  pad = (4 - (size & 3)) & 3;
+*/
+
 static uint16_t _arg_num = 0; /**< Argument number */
 static uint8_t* _arg_ptr = NULL; /**< Pointer to argument */
 static ELClientPacket* _cmd = NULL; /**< Global Pointer to packet */
@@ -19,7 +27,8 @@ int16_t Response_popArgPtr(void **data)
 
   /* Get  2 bytes len */
   uint16_t len = *(uint16_t*)_arg_ptr;
-  uint16_t pad = ( 4- ( (len + 2) & 3 ) ) & 3;    /* pad to next multiple of 4, including length */
+  /* pad to next multiple of 4, including length */
+  uint16_t pad = ( 4 - ( (len + 2) & 3 ) ) & 3;
 
   /* Increase argument pointer */
   _arg_ptr += 2;

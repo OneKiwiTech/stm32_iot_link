@@ -10,4 +10,5 @@ BOOL  xPortEventInit( void );
 BOOL  xPortEventPost( uint32_t eEvent );
 BOOL  xPortEventGet( uint32_t * eEvent );
 
+
 #endif /* PLATFORM_H_ */

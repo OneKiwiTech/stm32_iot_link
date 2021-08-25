@@ -2,7 +2,7 @@
 #ifndef _PORT_H
 #define _PORT_H
 
-#define	INLINE                      inline
+#define	INLINE                      inline /* ?? */
 #define PR_BEGIN_EXTERN_C           extern "C" {
 #define	PR_END_EXTERN_C             }
 

@@ -146,9 +146,13 @@ void StartDefaultTask(void const * argument)
   static uint32_t  pubCounter = 0;
   char   pubBuffer[64] = {0};
 
+  /* Handshake to check SLIP connection*/
   Mqtt_Sync();
-  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin); /* Ready indicator*/
+
+  /* Send MQTT request setup */
   ELClientMqtt_setup();
+
   ELClientMqtt_subscribe("/esp-link/command", 1);
   /* Infinite loop */
   for(;;)

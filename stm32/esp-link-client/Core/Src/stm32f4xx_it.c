@@ -172,9 +172,17 @@ void USART2_IRQHandler(void)
   uint8_t  data = 0;
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   data = 0xFF & (USART2->DR);
+
+  /* User function liked ...FromISR from interrupt handler */
   xQueueSendFromISR( xSerialQueueHandle, &data, &xHigherPriorityTaskWoken );
+
   LL_USART_ClearFlag_RXNE(USART2);
   LL_USART_ClearFlag_ORE(USART2);
+
+  /* Enable switch context */
+  if ( xHigherPriorityTaskWoken == pdTRUE ) {
+	  taskYIELD();
+  }
   /* USER CODE END USART2_IRQn 0 */
   /* USER CODE BEGIN USART2_IRQn 1 */
 

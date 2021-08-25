@@ -51,13 +51,14 @@ void ELClient_Process(void* arg)
 
   for(;;)
   {
+	  /* Read one-by-one data byte from serial queue */
 	  value = ELClient_Read();
-	  if (value == SLIP_ESC)
+	  if (value == SLIP_ESC) /* Check special byte & raise flag */
 	  {
 		_proto.isEsc = 1;
-	  } else if (value == SLIP_END)
+	  } else if (value == SLIP_END) /* Check End Frame */
 	  {
-		  if ( _proto.dataLen >= 8 ) {
+		  if ( _proto.dataLen >= 8 ) { /* 8 = minimum header len*/
 			__ProtoCompletedCb();
 			xSemaphoreGive( xCompltSemp );
 		  }
@@ -125,8 +126,9 @@ static void __ProtoCompletedCb(void)
   elclient_callback_fn  fp;
 
   /* verify CRC */
+  /* Calculated from received Frame, excludes 2 last bytes CRC */
   uint16_t crc = _crc16Data(_proto.buf, _proto.dataLen-2, 0);
-  uint16_t resp_crc = *(uint16_t*)(_proto.buf+_proto.dataLen-2);
+  uint16_t resp_crc = *(uint16_t*)(_proto.buf+_proto.dataLen-2); /* Respone CRC */
   if (crc != resp_crc) {
     DBG_PRINTF("ELC: Invalid CRC");
     return ;
@@ -135,21 +137,25 @@ static void __ProtoCompletedCb(void)
 	/* dispatch based on command */
 	switch (compltPacketPtr->cmd)
   {
+	  /*VALUE FEILD = normal value */
 	  case CMD_RESP_V: // response with a value: return the packet
 		  // value response
 		  DBG_PRINTF("RESP_V: ");
 		  DUMP_BUFFER(&(compltPacketPtr->value), 1);
 		 break;
 
+		 /*VALUE FEILD = Pointer */
 	  case CMD_RESP_CB: /* response callback: perform the callback! */
 		  DBG_PRINTF("RESP_CB: ");
 		  DBG_PRINTF(compltPacketPtr->value);
 		  DBG_PRINTF(" ");
 		  DBG_PRINTF(compltPacketPtr->argc);
+		  /* cast to function pointer (elclient_callback_fn*)(compltPacketPtr->value) & get value*/
 		  fp = *((elclient_callback_fn*)(compltPacketPtr->value));
+		  /* fp = Application Function Pointer */
 		  if (fp != NULL)
 		  {
-		  	(fp)(compltPacketPtr);
+		  	(fp)(compltPacketPtr); /*Call back registered USER function, USER process payload */
 		  }
 		 break;
 

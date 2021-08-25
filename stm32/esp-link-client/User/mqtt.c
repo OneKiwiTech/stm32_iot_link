@@ -12,7 +12,7 @@
 #include "main.h"
 #include "stm32f4xx_ll_gpio.h"
 
-#define MQTT_FRAME_LEN      128
+#define MQTT_FRAME_LEN      256
 
 static BOOL volatile connected;
 static uint8_t topic[MQTT_FRAME_LEN] = {0};
@@ -36,7 +36,7 @@ void Mqtt_Init()
   ELClientMqtt_ConnectedCbRegister(mqttConnected);
   ELClientMqtt_DisconnectedCbRegister(mqttDisconnected);
   ELClientMqtt_PublishedCbRegister(mqttPublished);
-  ELClientMqtt_DataCbRegister(mqttData);
+  ELClientMqtt_DataCbRegister(mqttData); /* mqttData =  Address of User Function located in Flash */
 }
 
 void Mqtt_Publish(const char* topic, const uint8_t* data, const uint16_t len)
@@ -89,24 +89,30 @@ void mqttDisconnected(void* response)
 /* Callback when an MQTT message arrives for one of our subscriptions */
 void mqttDataCmdHandler(char* payload, uint32_t len)
 {
-  if (memcmp(payload, "led_on", strlen("led_on"))) {
-	  LL_GPIO_ResetOutputPin(LD3_GPIO_Port, LD3_Pin);
-  } else if (memcmp(payload, "led_off", strlen("led_off"))) {
+  if (memcmp(payload, "led_on", strlen("led_on")) == 0) {
 	  LL_GPIO_SetOutputPin(LD3_GPIO_Port, LD3_Pin);
+  } else if (memcmp(payload, "led_off", strlen("led_off")) == 0) {
+	  LL_GPIO_ResetOutputPin(LD3_GPIO_Port, LD3_Pin);
   }
 }
 
 void mqttData(void* response)
 {
-  uint32_t  payloadLen = 0;
-  ELClientResponseInit((ELClientPacket*) response);
+  uint8_t  topicLen = 0;
+  uint8_t  payloadLen = 0;
+  ELClientResponseInit((ELClientPacket*) response); /* Prepare packet */
 
+  /* POP Mqtt topic */
   DBG_PRINTF("Received: topic=");
-  Response_popString(&topic[0], &payloadLen);
+  Response_popString(&topic[0], &topicLen);
   DUMP_BUFFER(topic, MQTT_FRAME_LEN);
 
-  Response_popArg(&data[0], &payloadLen);
-  DBG_PRINTF("Payload len = %d\r\n", payloadLen);
+  /* Pop payload len */
+  //Response_popArg(&payloadLen, 1); /* Max len mqtt: 255 */
+
+  /*  Data Mqtt payload */
+  payloadLen = Response_popArg(&data[0], sizeof(data));
+  DBG_PRINTF("Payload len = %d\r\n", 0);
   DBG_PRINTF("data=");
   DUMP_BUFFER(data, MQTT_FRAME_LEN);
 
