@@ -72,6 +72,12 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LD1_Pin LL_GPIO_PIN_12
 #define LD1_GPIO_Port GPIOD
+#define LD2_Pin LL_GPIO_PIN_13
+#define LD2_GPIO_Port GPIOD
+#define LD3_Pin LL_GPIO_PIN_14
+#define LD3_GPIO_Port GPIOD
+#define LD4_Pin LL_GPIO_PIN_15
+#define LD4_GPIO_Port GPIOD
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

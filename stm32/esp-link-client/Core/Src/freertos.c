@@ -143,17 +143,21 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
- 
+  static uint32_t  pubCounter = 0;
+  char   pubBuffer[64] = {0};
+
   Mqtt_Sync();
   HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
   ELClientMqtt_setup();
-  ELClientMqtt_subscribe("/esp-link/2", 1);
-  osDelay(100);
-  ELClientMqtt_subscribe("/esp-link/2", 1);
+  ELClientMqtt_subscribe("/esp-link/command", 1);
   /* Infinite loop */
   for(;;)
   {
-	  Mqtt_Publish("/esp-link/1", "hello", strlen("hello"));
+    if ( Mqtt_IsConnected() )
+    {
+      sprintf(pubBuffer, "Counter = %d\r\n", ++pubCounter);
+	    Mqtt_Publish("/esp-link/data", pubBuffer, strlen(pubBuffer));
+    }
 	  osDelay(3000);
   }
   /* USER CODE END StartDefaultTask */

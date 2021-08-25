@@ -1,6 +1,7 @@
 #include "ELClient.h"
 #include "ELClientMqtt.h"
 #include "ELClientResponse.h"
+#include "ELClientRequest.h"
 
 #include "port.h"
 #include "debug_log.h"
@@ -8,16 +9,19 @@
 #include "cmsis_os.h"
 #include "platform.h"
 
+#include "main.h"
+#include "stm32f4xx_ll_gpio.h"
+
 #define MQTT_FRAME_LEN      128
 
-static BOOL connected;
+static BOOL volatile connected;
 static uint8_t topic[MQTT_FRAME_LEN] = {0};
 static uint8_t data[MQTT_FRAME_LEN] = {0};
 
-// WIFI status callback
+/* WIFI status callback */
 void wifiStatusCb(void* response);
 
-// MQTT callback
+/* MQTT callbacks */
 void mqttConnected(void* response);
 void mqttDisconnected(void* response);
 void mqttData(void* response);
@@ -25,10 +29,10 @@ void mqttPublished(void* response);
 
 void Mqtt_Init()
 {
-
   ELClient_Init();
   ELClientMqtt_WifiCbRegister(wifiStatusCb);
-  // Set-up callbacks for events and initialize with es-link.
+
+  /* Set-up callbacks for events and initialize with es-link. */
   ELClientMqtt_ConnectedCbRegister(mqttConnected);
   ELClientMqtt_DisconnectedCbRegister(mqttDisconnected);
   ELClientMqtt_PublishedCbRegister(mqttPublished);
@@ -40,6 +44,11 @@ void Mqtt_Publish(const char* topic, const uint8_t* data, const uint16_t len)
   ELClientMqtt_publish(topic, data, len, 0, 0);
 }
 
+uint8_t Mqtt_IsConnected() 
+{
+  return connected;
+}
+
 void Mqtt_Sync()
 {
   BOOL ok = FALSE;
@@ -48,7 +57,6 @@ void Mqtt_Sync()
 	 osDelay(1000);
   } while(!ok);
 }
-
 
 //============================ LOCAL FUNCTIONS ===============================
 // Callback made from esp-link to notify of wifi status changes
@@ -68,7 +76,6 @@ void wifiStatusCb(void* arg)
 void mqttConnected(void* response)
 {
   DBG_PRINTF("MQTT connected!");
-
   connected = TRUE;
 }
 
@@ -79,24 +86,42 @@ void mqttDisconnected(void* response)
   connected = FALSE;
 }
 
-// Callback when an MQTT message arrives for one of our subscriptions
+/* Callback when an MQTT message arrives for one of our subscriptions */
+void mqttDataCmdHandler(char* payload, uint32_t len)
+{
+  if (memcmp(payload, "led_on", strlen("led_on"))) {
+	  LL_GPIO_ResetOutputPin(LD3_GPIO_Port, LD3_Pin);
+  } else if (memcmp(payload, "led_off", strlen("led_off"))) {
+	  LL_GPIO_SetOutputPin(LD3_GPIO_Port, LD3_Pin);
+  }
+}
+
 void mqttData(void* response)
 {
-  uint16_t  payloadLen = 0;
+  uint32_t  payloadLen = 0;
+  ELClientResponseInit((ELClientPacket*) response);
 
-//  ELClientResponse *res = (ELClientResponse *)response;
   DBG_PRINTF("Received: topic=");
-  Response_popBuffer(&topic[0], &payloadLen);
+  Response_popString(&topic[0], &payloadLen);
   DUMP_BUFFER(topic, MQTT_FRAME_LEN);
 
-  Response_popBuffer(&data[0], &payloadLen);
+  Response_popArg(&data[0], &payloadLen);
   DBG_PRINTF("Payload len = %d\r\n", payloadLen);
   DBG_PRINTF("data=");
   DUMP_BUFFER(data, MQTT_FRAME_LEN);
+
+  /* Example command handler */
+  if (strcmp((char*)topic, "/esp-link/command") == 0)
+  {
+    mqttDataCmdHandler((char*)data, payloadLen);
+  }
+
 }
 
+/* Topic has been published successfully */
 void mqttPublished(void* response)
 {
-	DBG_PRINTF("MQTT published");
+	DBG_MSG("MQTT published");
+    LL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 }
 

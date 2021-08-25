@@ -12,9 +12,9 @@ typedef struct PACKED {
   uint8_t  args[0];        /**< Arguments */
 } ELClientPacket; /**< Packet structure  */
 
+void    ELClientResponseInit(ELClientPacket* packet);
 int16_t Response_popArgPtr(void **data);
-void ELClientResponseInit(ELClientPacket* packet);
 int16_t Response_popArg(void* d, uint16_t maxLen);
-void Response_popBuffer(uint8_t* buffer, uint16_t* payload_len);
+void    Response_popString(uint8_t* buffer, uint16_t* payload_len);
 
 #endif // _EL_CLIENT_RESPONSE_H_

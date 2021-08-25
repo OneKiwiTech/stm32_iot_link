@@ -1,52 +1,39 @@
-/* ----------------------- Modbus includes ----------------------------------*/
+/* -----------------------  includes ----------------------------------*/
 #include "port.h"
 #include "FreeRTOS.h"
 #include "event_groups.h"
-#include "platform.h"
 
 /* ----------------------- Variables ----------------------------------------*/
-static EventGroupHandle_t xSlaveOsEvent_h;
-static StaticEventGroup_t xSlaveOsEventGroup;
+static EventGroupHandle_t xELCientEvent_h;
+static StaticEventGroup_t xELClientEventGroup;
 
 /* ----------------------- Start implementation -----------------------------*/
-BOOL
-xMBPortEventInit( void )
+BOOL  xPortEventInit( void )
 {
-    xSlaveOsEvent_h = xEventGroupCreateStatic( &xSlaveOsEventGroup );
-
+    xELCientEvent_h = xEventGroupCreateStatic( &xELClientEventGroup );
     return TRUE;
 }
 
-BOOL
-xMBPortEventPost( eMBEventType eEvent )
+BOOL  xPortEventPost( uint32_t eEvent )
 {
-    xEventGroupSetBits(xSlaveOsEvent_h, eEvent);
+    xEventGroupSetBits(xELCientEvent_h, eEvent);
     return TRUE;
 }
 
-BOOL
-xMBPortEventGet( eMBEventType * eEvent )
+BOOL xPortEventGet( uint32_t * eEvent )
 {
     EventBits_t uxBits;
-    const TickType_t xTicksToWait = 100 / portTICK_PERIOD_MS;
+    const TickType_t xTicksToWait = 0xFFFFFFFF;
 
     /* waiting forever OS event */
-    uxBits  = xEventGroupWaitBits(xSlaveOsEvent_h,
-            EV_READY | EV_FRAME_RECEIVED | EV_EXECUTE | EV_FRAME_SENT,
+    uxBits  = xEventGroupWaitBits(xELCientEvent_h,
+            0x01,
             pdTRUE,
             pdFALSE,
             xTicksToWait );
 
-    if (uxBits & EV_READY) {
-        *eEvent = EV_READY;
-    }else if (uxBits &EV_FRAME_RECEIVED) {
-        *eEvent = EV_FRAME_RECEIVED;
-    }else if (uxBits & EV_EXECUTE){
-        *eEvent = EV_EXECUTE;
-    }else if (uxBits & EV_FRAME_SENT) {
-        *eEvent = EV_FRAME_SENT;
-    }else {
-
+    if (uxBits & 0x01) {
+        *eEvent = 0x01;
     }
     
     return TRUE;

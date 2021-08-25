@@ -6,7 +6,9 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../User/ELClient.c \
+../User/ELClientCRC.c \
 ../User/ELClientMqtt.c \
+../User/ELClientRequest.c \
 ../User/ELClientResponse.c \
 ../User/ELClientTransport.c \
 ../User/debug_log.c \
@@ -14,7 +16,9 @@ C_SRCS += \
 
 OBJS += \
 ./User/ELClient.o \
+./User/ELClientCRC.o \
 ./User/ELClientMqtt.o \
+./User/ELClientRequest.o \
 ./User/ELClientResponse.o \
 ./User/ELClientTransport.o \
 ./User/debug_log.o \
@@ -22,7 +26,9 @@ OBJS += \
 
 C_DEPS += \
 ./User/ELClient.d \
+./User/ELClientCRC.d \
 ./User/ELClientMqtt.d \
+./User/ELClientRequest.d \
 ./User/ELClientResponse.d \
 ./User/ELClientTransport.d \
 ./User/debug_log.d \

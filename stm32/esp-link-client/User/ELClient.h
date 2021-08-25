@@ -3,9 +3,8 @@
 
 #include "common.h"
 
+/* Enumeration of commands supported by esp-link, this needs to match the definition in esp-link */
 
-// Enumeration of commands supported by esp-link, this needs to match the definition in
-// esp-link!
 typedef enum {
   CMD_NULL = 0,     /**< null, mainly to prevent 0 from doing something bad */
   CMD_SYNC,         /**< Synchronize, starts the protocol */
@@ -49,15 +48,14 @@ typedef struct {
   uint8_t isEsc;
 } ELClientProtocol; /**< Protocol structure  */
 
-void  ELClient_Init();
-BOOL  ELClient_Sync(void);
+void ELClient_Init();
+
+BOOL ELClient_Sync(void);
 void ELClient_GetWifiStatus(void);
 void ELClient_Process(void* arg);
-void ELClient_Request(void);
-void ELClient_RequestBuffer(const void* data, uint16_t len);
-void ELClient_RequestArgc(uint16_t cmd, uint32_t value, uint16_t argc);
 
+
+/* Callback register */
 void ELClientMqtt_WifiCbRegister(void* fn);
-void ELClientMqtt_subscribe(const char* topic, uint8_t qos);
 
 #endif // _EL_CLIENT_H_

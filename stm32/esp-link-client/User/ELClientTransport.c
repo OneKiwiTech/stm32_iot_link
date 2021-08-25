@@ -1,44 +1,44 @@
 #include "ELClientTransport.h"
+
+/* Queue */
 #include "FreeRTOS.h"
 #include "queue.h"
+
+/* Porting */
 #include "platform.h"
 
-/* The queue is to be created to hold a maximum of 10 uint64_t
-variables. */
-#define SERIAL_QUEUE_LENGTH    1024
+/* UART queue */
+#define SERIAL_QUEUE_LENGTH    512
 #define SERIAL_ITEM_SIZE       sizeof( uint8_t )
 
-/* The variable used to hold the queue's data structure. */
 static StaticQueue_t xSerialQueueStruct;
 QueueHandle_t xSerialQueueHandle;
 
-/* The array to use as the queue's storage area.  This must be at least
-uxQueueLength * uxItemSize bytes. */
 uint8_t ucSerialQueueStorageArea[ SERIAL_QUEUE_LENGTH * SERIAL_ITEM_SIZE ];
 
-void ELCLient_Transport_Init( void *pvParameters )
+/* Init uart transport */
+void ELCLient_Transport_Init(  )
 {
-    /* Create a queue capable of containing 10 uint64_t values. */
+    xPortSerialInit();
     xSerialQueueHandle = xQueueCreateStatic( SERIAL_QUEUE_LENGTH,
                                  SERIAL_ITEM_SIZE,
                                  ucSerialQueueStorageArea,
                                  &xSerialQueueStruct );
-
  }
 
+/* Read data from the serial queue - wait forever*/
 uint8_t ELClient_Read()
 {
 	uint8_t data = 0;
-    xQueueReceive( xSerialQueueHandle, &data, ( TickType_t ) 0xFFFFFFFF );
+  xQueueReceive( xSerialQueueHandle, &data, ( TickType_t ) 0xFFFFFFFF );
 
-    return data;
+  return data;
 }
-/* for each byte in the packet, send the appropriate character
+/* For each byte in the packet, send the appropriate character
 * sequence
 */
 void ELClient_Write(uint8_t data)
 {
-  
   switch (data)
   {
   /* if it’s the same code as an END character, we send a

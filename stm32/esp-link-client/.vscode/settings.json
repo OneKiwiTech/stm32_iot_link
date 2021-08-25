@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "elclientcrc.h": "c",
+        "debug_log.h": "c",
+        "usart.h": "c"
+    }
+}
