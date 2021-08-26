@@ -17861,9 +17861,6 @@ void mqttData(void* response)
  8006684:	4813      	ldr	r0, [pc, #76]	; (80066d4 <mqttData+0x7c>)
  8006686:	f7ff feb5 	bl	80063f4 <debug_send_buffer>
 
-  /* Pop payload len */
-  //Response_popArg(&payloadLen, 1); /* Max len mqtt: 255 */
-
   /*  Data Mqtt payload */
   payloadLen = Response_popArg(&data[0], sizeof(data));
  800668a:	f44f 7180 	mov.w	r1, #256	; 0x100
@@ -17898,7 +17895,6 @@ void mqttData(void* response)
  80066c2:	4805      	ldr	r0, [pc, #20]	; (80066d8 <mqttData+0x80>)
  80066c4:	f7ff ff9e 	bl	8006604 <mqttDataCmdHandler>
   }
-
 }
  80066c8:	bf00      	nop
  80066ca:	3710      	adds	r7, #16

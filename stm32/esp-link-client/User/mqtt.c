@@ -107,9 +107,6 @@ void mqttData(void* response)
   Response_popString(&topic[0], &topicLen);
   DUMP_BUFFER(topic, MQTT_FRAME_LEN);
 
-  /* Pop payload len */
-  //Response_popArg(&payloadLen, 1); /* Max len mqtt: 255 */
-
   /*  Data Mqtt payload */
   payloadLen = Response_popArg(&data[0], sizeof(data));
   DBG_PRINTF("Payload len = %d\r\n", 0);
@@ -121,7 +118,6 @@ void mqttData(void* response)
   {
     mqttDataCmdHandler((char*)data, payloadLen);
   }
-
 }
 
 /* Topic has been published successfully */
